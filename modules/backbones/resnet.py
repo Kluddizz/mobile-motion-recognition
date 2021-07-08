@@ -136,6 +136,16 @@ class ResNet(nn.Module):
     out = self.conv5(out)
     return out
 
+  def extract_features(self, x):
+    out = F.relu(self.bn1(self.conv1(x)))
+    out = self.maxpool(out)
+
+    c2 = self.conv2(out)
+    c3 = self.conv3(c2)
+    c4 = self.conv4(c3)
+    c5 = self.conv5(c4)
+    return c2, c3, c4, c5
+
 def resnet18():
   return ResNet(
     BasicBlock,
