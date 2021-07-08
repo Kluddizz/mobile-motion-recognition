@@ -100,8 +100,6 @@ class ResNet(nn.Module):
     self.conv4 = self._make_layer(block, 256, layers[2], stride=2)
     self.conv5 = self._make_layer(block, 512, layers[3], stride=2)
 
-    self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-
   def _make_layer(self, block, planes, number_blocks, stride=1):
     out_planes = planes * block.expansion
 
@@ -136,8 +134,6 @@ class ResNet(nn.Module):
     out = self.conv3(out)
     out = self.conv4(out)
     out = self.conv5(out)
-
-    # out = self.avgpool(out)
     return out
 
 def resnet18():
