@@ -21,6 +21,14 @@ class TestCenterNetPoseEstimator(unittest.TestCase):
 
     self.assertEqual(net.filters, [64, 32, 24])
 
+  def test_filters_mobilenetv2_fpn(self):
+    # Create random image
+    x = torch.rand(1, 3, 224, 224)
+
+    net = CenterNetPoseEstimator(17, backbone='mobilenetv2', fpn=True)
+
+    self.assertEqual(net.filters, [64, 32, 24])
+
   def test_output_shape_resnet50(self):
     # Create random image
     x = torch.rand(1, 3, 224, 224)
