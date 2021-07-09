@@ -49,9 +49,10 @@ class InvertedResidualBlock(nn.Module):
     return x
 
 class MobileNetV2(nn.Module):
-  def __init__(self, classes):
+  def __init__(self, classes=1):
     super(MobileNetV2, self).__init__()
     self.classes = classes
+    self.lateral_channels = [1280, 64, 32, 24]
 
     self.conv1 = nn.Conv2d(
       in_channels=3,
@@ -95,7 +96,7 @@ class MobileNetV2(nn.Module):
           out_channels=out_channels,
           stride=1,
           expansion_factor=expansion_factor))
-
+    
     return nn.Sequential(*layers)
 
   def extract_features(self, x):

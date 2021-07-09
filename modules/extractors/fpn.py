@@ -3,33 +3,34 @@ import torch.nn.functional as F
 
 from modules.backbones.resnet import ResNet
 
-class CenterNetResNetFPN(nn.Module):
-  def __init__(self, backbone: ResNet):
-    super(CenterNetResNetFPN, self).__init__()
+class FPN(nn.Module):
+  def __init__(self, backbone, lateral_channels, filters=[256, 256, 256]):
+    super(FPN, self).__init__()
     self.backbone = backbone
+    self.filters = filters
 
     self.conv1 = nn.Sequential(
-      nn.Conv2d(256, 128, kernel_size=1, padding=1),
-      nn.BatchNorm2d(128),
+      nn.Conv2d(self.filters[0], self.filters[1], kernel_size=1, padding=1),
+      nn.BatchNorm2d(self.filters[1]),
       nn.ReLU(inplace=True))
     self.conv2 = nn.Sequential(
-      nn.Conv2d(128, 64, kernel_size=1, padding=1),
-      nn.BatchNorm2d(64),
+      nn.Conv2d(self.filters[1], self.filters[2], kernel_size=1, padding=1),
+      nn.BatchNorm2d(self.filters[2]),
       nn.ReLU(inplace=True))
     self.conv3 = nn.Sequential(
-      nn.Conv2d(64, 64, kernel_size=1, padding=1),
-      nn.BatchNorm2d(64),
+      nn.Conv2d(self.filters[2], self.filters[2], kernel_size=1, padding=1),
+      nn.BatchNorm2d(self.filters[2]),
       nn.ReLU(inplace=True))
 
-    self.lateral1 = nn.Conv2d(self.backbone.in_planes // 1, 256, kernel_size=1, padding='same', bias=False)
-    self.lateral2 = nn.Conv2d(self.backbone.in_planes // 2, 256, kernel_size=1, padding='same', bias=False)
-    self.lateral3 = nn.Conv2d(self.backbone.in_planes // 4, 128, kernel_size=1, padding='same', bias=False)
-    self.lateral4 = nn.Conv2d(self.backbone.in_planes // 8,  64, kernel_size=1, padding='same', bias=False)
+    self.lateral1 = nn.Conv2d(lateral_channels[0], self.filters[0], kernel_size=1, padding='same', bias=False)
+    self.lateral2 = nn.Conv2d(lateral_channels[1], self.filters[0], kernel_size=1, padding='same', bias=False)
+    self.lateral3 = nn.Conv2d(lateral_channels[2], self.filters[1], kernel_size=1, padding='same', bias=False)
+    self.lateral4 = nn.Conv2d(lateral_channels[3], self.filters[2], kernel_size=1, padding='same', bias=False)
 
-    self.smooth1 = nn.Conv2d(256, 256, kernel_size=3, padding='valid', bias=False)
-    self.smooth2 = nn.Conv2d(128, 128, kernel_size=3, padding='valid', bias=False)
-    self.smooth3 = nn.Conv2d( 64,  64, kernel_size=3, padding='valid', bias=False)
-    self.smooth4 = nn.Conv2d( 64,  64, kernel_size=3, padding='valid', bias=False)
+    self.smooth1 = nn.Conv2d(self.filters[0], self.filters[0], kernel_size=3, padding='valid', bias=False)
+    self.smooth2 = nn.Conv2d(self.filters[1], self.filters[1], kernel_size=3, padding='valid', bias=False)
+    self.smooth3 = nn.Conv2d(self.filters[2], self.filters[2], kernel_size=3, padding='valid', bias=False)
+    self.smooth4 = nn.Conv2d(self.filters[2], self.filters[2], kernel_size=3, padding='valid', bias=False)
 
   def _upsample_add(self, x, y):
     _, _, H, W = y.size()

@@ -86,9 +86,10 @@ class ResNet(nn.Module):
   * `[1] Deep Residual Learning for Image Recognition, https://arxiv.org/pdf/1512.03385.pdf`
   '''
 
-  def __init__(self, block, layers=[]):
+  def __init__(self, block, layers=[], classes=1):
     super(ResNet, self).__init__()
     self.in_planes = 64
+    self.lateral_channels = []
 
     self.conv1 = nn.Conv2d(3, self.in_planes, kernel_size=7, stride=2, padding=3, bias=False)
     self.bn1 = nn.BatchNorm2d(self.in_planes)
@@ -99,6 +100,10 @@ class ResNet(nn.Module):
     self.conv3 = self._make_layer(block, 128, layers[1], stride=2)
     self.conv4 = self._make_layer(block, 256, layers[2], stride=2)
     self.conv5 = self._make_layer(block, 512, layers[3], stride=2)
+
+    self.avgpool = nn.AdaptiveAvgPool2d(1)
+    self.dropout = nn.Dropout(p=0.2, inplace=True)
+    self.fc = nn.Linear(self.in_planes, classes)
 
   def _make_layer(self, block, planes, number_blocks, stride=1):
     out_planes = planes * block.expansion
@@ -113,6 +118,7 @@ class ResNet(nn.Module):
     ]
 
     self.in_planes = out_planes
+    self.lateral_channels = [self.in_planes] + self.lateral_channels
 
     for _ in range(1, number_blocks):
       layers.append(
@@ -127,51 +133,67 @@ class ResNet(nn.Module):
     return nn.Sequential(*layers)
 
   def forward(self, x):
-    out = F.relu(self.bn1(self.conv1(x)))
-    out = self.maxpool(out)
+    # First convolutional step
+    x = F.relu(self.bn1(self.conv1(x)))
+    x = self.maxpool(x)
 
-    out = self.conv2(out)
-    out = self.conv3(out)
-    out = self.conv4(out)
-    out = self.conv5(out)
-    return out
+    # Bottleneck layers
+    x = self.conv2(x)
+    x = self.conv3(x)
+    x = self.conv4(x)
+    x = self.conv5(x)
+
+    x = self.avgpool(x)
+    x = self.dropout(x)
+
+    # Flatten and fully-connect
+    x = x.view(x.size(0), -1)
+    x = self.fc(x)
+    return x
 
   def extract_features(self, x):
+    # First convolutional step
     out = F.relu(self.bn1(self.conv1(x)))
     out = self.maxpool(out)
 
+    # Bottleneck layers
     c2 = self.conv2(out)
     c3 = self.conv3(c2)
     c4 = self.conv4(c3)
     c5 = self.conv5(c4)
     return c2, c3, c4, c5
 
-def resnet18():
+def resnet18(classes=1):
   return ResNet(
     BasicBlock,
-    layers=[2, 2, 2, 2]
+    layers=[2, 2, 2, 2],
+    classes=classes
   )
 
-def resnet34():
+def resnet34(classes=1):
   return ResNet(
     BasicBlock,
-    layers=[3, 4, 6, 3]
+    layers=[3, 4, 6, 3],
+    classes=classes
   )
 
-def resnet50():
+def resnet50(classes=1):
   return ResNet(
     BottleneckBlock,
-    layers=[3, 4, 6, 3]
+    layers=[3, 4, 6, 3],
+    classes=classes
   )
 
-def resnet101():
+def resnet101(classes=1):
   return ResNet(
     BottleneckBlock,
-    layers=[3, 4, 23, 3]
+    layers=[3, 4, 23, 3],
+    classes=classes
   )
 
-def resnet152():
+def resnet152(classes=1):
   return ResNet(
     BottleneckBlock,
-    layers=[3, 8, 36, 3]
+    layers=[3, 8, 36, 3],
+    classes=classes
   )
