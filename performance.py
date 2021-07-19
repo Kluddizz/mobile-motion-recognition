@@ -22,12 +22,12 @@ network_map = {
 }
 
 def measure_time(function, *args):
-  start_time = time.time()
+  start_time = time.perf_counter_ns()
 
   function(*args)
 
-  end_time = time.time()
-  estimated_ms = (end_time - start_time) * 1000.0
+  end_time = time.perf_counter_ns()
+  estimated_ms = (end_time - start_time) / 1000000.0
   return estimated_ms
 
 if __name__ == '__main__':
@@ -42,5 +42,7 @@ if __name__ == '__main__':
     network.to(device)
     ms = measure_time(network, x)
     data.append([key, round(ms, 2), round(1000.0 / ms)])
-
-  print(tabulate(data, headers=["Model", "ms", "FPS"]))
+    
+  print(tabulate(data, headers=['model', 'ms', 'fps']))
+    
+    
