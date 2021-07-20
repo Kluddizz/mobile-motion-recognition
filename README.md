@@ -6,6 +6,12 @@ analysis models especially for the use on mobile devices using [PyTorch](https:/
 * [A Look At MobileNetV2 Inverted Residuals And Linear Bottlenecks](https://medium.com/@luis_gonzales/a-look-at-mobilenetv2-inverted-residuals-and-linear-bottlenecks-d49f85c12423)
 * [Next-Generation Pose Detection with MoveNet and TensorFlow.js](https://blog.tensorflow.org/2021/05/next-generation-pose-detection-with-movenet-and-tensorflowjs.html)
 
+## Benchmarks
+
+    model                         ms    fps
+    -------------------------  -----  -----
+    mobilenetv2_fpn_centernet  27.24     37
+
 ## Training
 To train your own model just run the training script.
 
