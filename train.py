@@ -8,7 +8,7 @@ import torch
 import torch.utils.data as data
 
 from datasets import COCOKeypointDataset
-from modules.models.pose_estimator import PoseEstimator
+from modules.models.pose_estimator import MobileNetV2FpnCenterNet
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--continue-training', type=str, default=False)
@@ -80,7 +80,7 @@ if __name__ == '__main__':
   elif cfg.model_file is None:
     # model = CenterNetPoseEstimator(17, 'mobilenetv2', fpn=True)
     # model = MobileNetV2GAN(17, pretrained=True)
-    model = PoseEstimator()
+    model = MobileNetV2FpnCenterNet()
   else:
     model = torch.load(cfg.model_file)
     print(f'load model from "{cfg.model_file}" and continue with epoch {cfg.start_epoch}')

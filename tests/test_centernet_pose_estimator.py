@@ -1,7 +1,7 @@
 import torch
 import unittest
 
-from modules.models.pose_estimator import PoseEstimator
+from modules.models.pose_estimator import MobileNetV2FpnCenterNet
 
 class TestCenterNetPoseEstimator(unittest.TestCase):
 
@@ -10,7 +10,7 @@ class TestCenterNetPoseEstimator(unittest.TestCase):
     x = torch.rand(1, 3, 224, 224)
 
     # Define network and run inference.
-    net = PoseEstimator()
+    net = MobileNetV2FpnCenterNet()
     output = net(x)
 
     # The network outputs uses one prediction head to predict heatmaps for all
