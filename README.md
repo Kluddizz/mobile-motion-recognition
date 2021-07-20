@@ -25,7 +25,12 @@ analysis models especially for the use on mobile devices using [PyTorch](https:/
     mobilenet_v3_small_fpn_centernet  5.74    174
 
 ## Training
-To train your own model just run the training script.
+First, download the COCO dataset. This may will take some time.
+
+    cd datasets
+    python download_coco2017.py
+
+To start training run the training script.
 
     python train.py --help
 
