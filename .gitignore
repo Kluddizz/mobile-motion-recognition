@@ -4,5 +4,7 @@ __pycache__/
 saved/
 checkpoints/
 eval/
+models/
 datasets/*
 !datasets/download_coco2017.py
+!datasets/trim_videos.py

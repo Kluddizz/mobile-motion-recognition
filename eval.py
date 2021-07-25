@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 
 kp_text_map = ["nose",
-               "left_eye",
+               "left_eye",        
                "right_eye",
                "left_ear",
                "right_ear",
@@ -28,6 +28,13 @@ kp_text_map = ["nose",
                "right_knee",
                "left_ankle",
                "right_ankle"]
+
+kp_connections = [
+  (0, 1),
+  (0, 2),
+  (1, 3),
+  (2, 4),
+]
 
 def find_maximum(heatmap):
   rows = heatmap.shape[0]
@@ -74,17 +81,19 @@ if __name__ == '__main__':
   list_of_files = glob.glob('checkpoints/*.pt')
   cfg.model_file = max(list_of_files, key=os.path.getctime)
   model = torch.load(cfg.model_file)
+  m = torch.load('models/mobilenetv2_224_adam_best.t7')
 
   image_paths = glob.glob('eval/*')
   input_batch = read_images_as_tensors(image_paths).to(cfg.device)
   
   start = time.perf_counter()
-  y = model(input_batch)
+  y = m(input_batch)
   end = time.perf_counter()
   print(end - start)
+  print(y)
 
   num_inputs = len(image_paths)
-  fig, ax = plt.subplots(num_inputs, 3)
+  fig, ax = plt.subplots(num_inputs, 5)
 
   for i in range(num_inputs):
     hmaps = y[0][i].cpu().detach().numpy().astype(np.float32)
@@ -97,15 +106,17 @@ if __name__ == '__main__':
     
     input_tensor = input_batch[i].cpu().detach()
     ax[i,0].imshow(input_tensor.permute(1, 2, 0))
-
+    
     for idx, kp in enumerate(keypoints):
       cx = kp[1] * input_tensor.shape[2]
       cy = kp[0] * input_tensor.shape[1]
-      ax[i,0].text(cx, cy - 3, kp_text_map[idx], horizontalalignment='center', verticalalignment='center')
-      circle = Circle((cx, cy), 2)
+      circle = Circle((cx, cy), 2, color='red')
       ax[i,0].add_patch(circle)
+      ax[i,0].text(cx, cy - 5, kp_text_map[idx], horizontalalignment='center', verticalalignment='center', color='red')
 
     ax[i,1].imshow(hmaps.sum(axis=0))
     ax[i,2].imshow(hmaps[0])
+    ax[i,3].imshow(hmaps[1])
+    ax[i,4].imshow(hmaps[2])
 
   plt.show()

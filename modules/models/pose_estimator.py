@@ -4,10 +4,9 @@ from torchvision.models.mobilenetv3 import mobilenet_v3_large, mobilenet_v3_smal
 from modules.models.detectors import FpnDetector
 from modules.heads.centernet import CenterNetHead
 
-
 class MobileNetV3LargeFpnCenterNet(FpnDetector):
   def __init__(self):
-    super().__init__(fpn_output_channels=[24, 32, 64])
+    super().__init__(fpn_output_channels=[40, 80, 160])
 
   def backbone_layers(self):
     backbone_model = mobilenet_v3_large(pretrained=True)
@@ -23,7 +22,7 @@ class MobileNetV3LargeFpnCenterNet(FpnDetector):
     return layer1, layer2, layer3, layer4
 
   def prediction_heads(self):
-    return [CenterNetHead(24, 64, 17)]
+    return [CenterNetHead(40, 64, 17)]
 
 class MobileNetV3SmallFpnCenterNet(FpnDetector):
   def __init__(self):

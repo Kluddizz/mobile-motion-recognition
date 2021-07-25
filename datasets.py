@@ -100,15 +100,8 @@ class COCOKeypointDataset(Dataset):
         confidence = keypoints[i * 3 + 2]
 
         if confidence > 0:
-          hmap = self.gaussian(np.zeros(output_size), (x, y))
+          hmap = self.gaussian(np.zeros(output_size), (x, y), sigma=2)
           hmaps[i, :, :] = cv2.resize(hmap, (output_size[1], output_size[0]), interpolation=cv2.INTER_AREA)
-
-          max_val = hmaps[i, :, :].max()
-
-          # Normalize the heatmap, if the highest value is greater than 0.
-          # This automatically prevents division by 0 (undefined).
-          if (max_val > 0):
-            hmaps[i, :, :] /= max_val
 
     return hmaps
 
@@ -137,7 +130,7 @@ class COCOKeypointDataset(Dataset):
     anns = self.coco.loadAnns(ids=ann_ids)
     ann = self._get_annotation_with_max_keypoints(anns)
     # hmap = self._generate_heatmaps(ann, original_img_shape[1:], (self.hmap_size[0], self.hmap_size[1]))
-    hmap = self._generate_heatmaps(ann, original_img_shape[1:], (56, 56))
+    hmap = self._generate_heatmaps(ann, original_img_shape[1:], (28, 28))
 
     return {
       'image': img,

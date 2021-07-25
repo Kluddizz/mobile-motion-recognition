@@ -1,130 +1,77 @@
-import numpy as np
 import os
-import glob
-import time
-import datetime
+import cv2
 import argparse
-import torch
-import torch.utils.data as data
+import numpy as np
+import tensorflow as tf
 
-from datasets import COCOKeypointDataset
-from modules.models.pose_estimator import MobileNetV2FpnCenterNet
+from modules.models.movenet import MotionNet
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--continue-training', type=str, default=False)
-parser.add_argument('--model-file', type=str, default=None)
-parser.add_argument('--start-epoch', type=int, default=0)
-parser.add_argument('--checkpoint-dir', type=str, default='checkpoints')
-parser.add_argument('--data-dir', type=str, default='datasets/coco2017')
-parser.add_argument('--epochs', type=int, default=250)
-parser.add_argument('--batch-size', type=int, default=128)
-parser.add_argument('--device', type=str, default='cuda')
-parser.add_argument('--num-workers', type=int, default=4)
-parser.add_argument('--lr', type=float, default=1e-4)
-cfg = parser.parse_args()
+def read_dataset(num_classes):
+  with open('datasets/motions2021/annotations.txt', 'r') as f:
+    annotations = [a.rstrip("\n") for a in f.readlines()]
 
-def _neg_loss(preds, targets):
-  ''' Modified focal loss. Exactly the same as CornerNet.
-      Runs faster and costs a little bit more memory
-      Arguments:
-      preds (B x c x h x w)
-      gt_regr (B x c x h x w)
-  '''
-  pos_inds = targets.eq(1).float()
-  neg_inds = targets.lt(1).float()
+  for annotation in annotations:
+    # Annotation format is: <video_url> <label>
+    splitted = annotation.split(' ')
+    video_url = os.path.join('datasets', splitted[0])
+    label_idx = int(splitted[1])
+    label = np.zeros(num_classes, dtype=np.float32)
+    label[label_idx] = 1.0
 
-  neg_weights = torch.pow(1 - targets, 4)
+    # Load video file into memory
+    cap = cv2.VideoCapture(video_url)
 
-  loss = 0
-  for pred in preds:
-    pred = torch.clamp(torch.sigmoid(pred), min=1e-4, max=1 - 1e-4)
-    pos_loss = torch.log(pred) * torch.pow(1 - pred, 2) * pos_inds
-    neg_loss = torch.log(1 - pred) * torch.pow(pred, 2) * neg_weights * neg_inds
+    # Read properties of video
+    num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    num_channels = 3
 
-    num_pos = pos_inds.float().sum()
-    pos_loss = pos_loss.sum()
-    neg_loss = neg_loss.sum()
+    # Create empty buffer to store video frames
+    video = np.empty((num_frames, 192, 192, num_channels), dtype=np.int32)
 
-    if num_pos == 0:
-      loss = loss - neg_loss
-    else:
-      loss = loss - (pos_loss + neg_loss) / num_pos
-  return loss / len(preds)
+    # Fill video buffer with frame data
+    for i in range(num_frames):
+      ret, frame = cap.read()
+
+      if not ret:
+        break
+
+      # Convert frame into correct shape and format
+      frame = cv2.resize(frame, (192, 192), interpolation=cv2.INTER_AREA)
+      frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+      # Normalize frame channels and store it into the frame buffer
+      video[i] = frame
+
+    yield video, label
 
 if __name__ == '__main__':
-  if not torch.cuda.is_available():
-    print('Error loading cuda')
-    exit()
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--batch-size', type=int, default=32)
+  parser.add_argument('--epochs', type=int, default=50)
+  args = parser.parse_args()
 
-  if not os.path.exists(cfg.checkpoint_dir):
-    os.makedirs(cfg.checkpoint_dir)
+  with open('datasets/motions2021/labels.txt', 'r') as f:
+    labels = [l.rstrip("\n") for l in f.readlines()]
 
-  train_dataset = COCOKeypointDataset(cfg.data_dir, split='train', img_size=(224, 224))
-  train_loader = data.DataLoader(
-    dataset=train_dataset,
-    batch_size=cfg.batch_size,
-    shuffle=True,
-    num_workers=cfg.num_workers,
-    pin_memory=True,
-    drop_last=True
-  )
+  train_dataset = tf.data.Dataset.from_generator(
+    lambda: read_dataset(num_classes=len(labels)),
+    output_types=(tf.int32, tf.int32)
+  ).batch(args.batch_size)
 
-  if cfg.continue_training:
-    list_of_files = glob.glob('checkpoints/*.pt')
-    cfg.model_file = max(list_of_files, key=os.path.getctime)
-    model_name = os.path.splitext(os.path.basename(cfg.model_file))[0]
-    cfg.start_epoch = int(model_name.split('_')[1]) + 1
+  num_classes = len(labels)
+  model = MotionNet(num_classes)
 
-    print(f'load model from "{cfg.model_file}" and continue with epoch {cfg.start_epoch}')
-    model = torch.load(cfg.model_file)
-  elif cfg.model_file is None:
-    # model = CenterNetPoseEstimator(17, 'mobilenetv2', fpn=True)
-    # model = MobileNetV2GAN(17, pretrained=True)
-    model = MobileNetV2FpnCenterNet()
-  else:
-    model = torch.load(cfg.model_file)
-    print(f'load model from "{cfg.model_file}" and continue with epoch {cfg.start_epoch}')
+  classifier_loss = tf.keras.losses.CategoricalCrossentropy()
+  optimizer = tf.keras.optimizers.Adam()
 
-  optimizer = torch.optim.Adam(model.parameters(), cfg.lr)
-  loss = torch.nn.MSELoss()
-  # loss = _neg_loss
-
-  estimated_batch_times = np.zeros((200), dtype=np.float32)
-
-  for epoch in range(cfg.start_epoch, cfg.epochs):
-    model.to(cfg.device)
-    model.train()
-
-    total_batches = len(train_loader)
-    start_time_batch = time.perf_counter()
-
-    for batch_idx, batch in enumerate(train_loader):
-      batch['image'] = batch['image'].to(cfg.device, non_blocking=True)
-      batch['hmap'] = batch['hmap'].to(cfg.device, non_blocking=True)
-
-      # Inference
-      x = batch['image']
-      outputs = model(x)
-
-      # Calculating the loss
-      hmap = outputs[0]
-      hmap_loss = loss(hmap, batch['hmap'])
-
-      # Backpropergate the loss
-      optimizer.zero_grad()
-      hmap_loss.backward()
-      optimizer.step()
-
-      end_time_batch = time.perf_counter()
-      estimated_batch_times[0] = end_time_batch - start_time_batch
-      start_time_batch = end_time_batch
-
-      number_left_batches = total_batches - (batch_idx + 1)
-      estimated_batch_times = np.roll(estimated_batch_times, 1)
-
-      time_batch_avg = estimated_batch_times.sum() / len(estimated_batch_times)
-      time_left = time_batch_avg * number_left_batches
-
-      print(f'Epoch {epoch}/{cfg.epochs}, {batch_idx+1}/{len(train_loader)}: hmap_loss {hmap_loss}\t[{datetime.timedelta(seconds=time_left)}]', end='\r')
-
-    torch.save(model, os.path.join(cfg.checkpoint_dir, f'model_{epoch}.pt'))
+  for epoch in range(args.epochs):
+    for idx, batch in enumerate(train_dataset):
+      with tf.GradientTape() as tape:
+        y = model(batch[0])
+        loss = classifier_loss(batch[1], y)
+      
+      gradient = tape.gradient(loss, model.trainable_variables)
+      optimizer.apply_gradients(zip(gradient, model.trainable_variables))
+      print(f'epoch {epoch + 1}/{args.epochs}, batch {idx + 1}/{train_dataset._batch_size}, loss: {loss}')
