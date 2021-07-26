@@ -4,14 +4,11 @@ import argparse
 import numpy as np
 import tensorflow as tf
 import tensorflow_hub as hub
-from modules.models.movenet import MotionNet
+from modules.models.motionnet import MotionNet
 
 def read_dataset_generator(num_classes, pose_estimator):
   with open('datasets/motions2021/annotations.txt', 'r') as f:
     annotations = [a.rstrip("\n") for a in f.readlines()]
-
-  train_x = []
-  train_y = []
 
   for annotation in annotations:
     # Annotation format is: <video_url> <label>

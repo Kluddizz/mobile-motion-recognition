@@ -1,5 +1,5 @@
 import tensorflow as tf
-from tensorflow.keras.layers import ReLU, Dropout, Dense, Flatten
+from tensorflow.keras.layers import Dropout, Dense, Flatten
 
 class MotionNet(tf.keras.Model):
   def __init__(self, classes):
