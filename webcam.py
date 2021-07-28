@@ -3,13 +3,15 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_hub as hub
 
-with open('datasets/motions2021/labels.txt', 'r') as f:
-  labels = [l.rstrip("\n") for l in f.readlines()]
+labels = [
+  "dumbbell_laterals",
+  "squats"
+]
 
 keypoints_buffer = np.zeros((1, 60, 17, 3), dtype=np.float32)
 movenet_model = hub.load("https://tfhub.dev/google/movenet/singlepose/lightning/4")
 movenet = movenet_model.signatures['serving_default']
-motionnet = tf.keras.models.load_model('checkpoints/motionnet')
+motionnet = tf.keras.models.load_model('models/motionnet')
 capture = cv2.VideoCapture(0)
 
 while True:
