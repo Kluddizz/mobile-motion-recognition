@@ -4,7 +4,7 @@ import argparse
 import numpy as np
 import tensorflow as tf
 import tensorflow_hub as hub
-from modules.models.motionnet import MotionNet
+from modules.models.motionnet import MotionNet, MotionNetCNN
 
 def read_dataset_generator(num_classes, pose_estimator):
   with open('datasets/motions2021/annotations.txt', 'r') as f:
@@ -93,6 +93,7 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('--batch-size', type=int, default=32)
   parser.add_argument('--epochs', type=int, default=50)
+  parser.add_argument('--save-interval', type=int, default=100)
   parser.add_argument('--use-dataset-generator', action='store_true')
   args = parser.parse_args()
 
@@ -103,7 +104,8 @@ if __name__ == '__main__':
   pose_estimator = pose_model.signatures['serving_default']
 
   num_classes = len(labels)
-  model = MotionNet(num_classes)
+  # model = MotionNet(num_classes)
+  model = MotionNetCNN(num_classes)
 
   if args.use_dataset_generator:
     train_dataset = tf.data.Dataset.from_generator(
@@ -127,7 +129,7 @@ if __name__ == '__main__':
       for idx, batch in enumerate(train_dataset):
         loss = model.train_on_batch(batch[0], batch[1])
 
-        if epoch % (100*num_batches):
+        if epoch % args.save_interval == 0:
           tf.keras.models.save_model(model, checkpoint_path, include_optimizer=False)
 
         print(f'epoch {epoch + 1}/{args.epochs}, batch {idx + 1}, loss: {loss}')
@@ -135,7 +137,7 @@ if __name__ == '__main__':
     cp_callback = tf.keras.callbacks.ModelCheckpoint(
       filepath=checkpoint_path,
       verbose=True,
-      save_freq=100*num_batches
+      save_freq=args.save_interval*num_batches
     )
 
     model.fit(

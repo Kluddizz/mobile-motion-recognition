@@ -5,7 +5,8 @@ import tensorflow_hub as hub
 
 labels = [
   "dumbbell_laterals",
-  "squats"
+  "squats",
+  "spinning"
 ]
 
 keypoints_buffer = np.zeros((1, 60, 17, 3), dtype=np.float32)
