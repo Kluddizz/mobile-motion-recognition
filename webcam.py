@@ -12,8 +12,8 @@ labels = [
 keypoints_buffer = np.zeros((1, 60, 17, 3), dtype=np.float32)
 movenet_model = hub.load("https://tfhub.dev/google/movenet/singlepose/lightning/4")
 movenet = movenet_model.signatures['serving_default']
-motionnet = tf.keras.models.load_model('models/motionnet')
-capture = cv2.VideoCapture(0)
+motionnet = tf.keras.models.load_model('checkpoints/motionnet')
+capture = cv2.VideoCapture('video.mp4')
 
 while True:
   ret, frame = capture.read()

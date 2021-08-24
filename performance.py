@@ -13,7 +13,7 @@ cfg = parser.parse_args()
 network_map = {
   'mobilenet_v2_fpn_centernet':  MobileNetV2FpnCenterNet(),
   'mobilenet_v3_large_fpn_centernet':  MobileNetV3LargeFpnCenterNet(),
-  'mobilenet_v3_small_fpn_centernet':  MobileNetV3SmallFpnCenterNet(),
+  'mobilenet_v3_small_fpn_centernet':  MobileNetV3SmallFpnCenterNet()
 }
 
 @functools.lru_cache(maxsize=None)
