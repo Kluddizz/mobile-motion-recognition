@@ -6,7 +6,7 @@ import random
 import tensorflow as tf
 import tensorflow_hub as hub
 from motion2021 import read_motion2021_dataset
-from modules.models.motionnet import MotionNet, MotionNetCNN
+from modules.models.motionnet import MotionNet60
 
 def read_dataset_generator(num_classes, batch_size, generator):
   train_y = np.zeros((batch_size, num_classes), dtype=np.float32)
@@ -78,12 +78,12 @@ if __name__ == '__main__':
 
   pose_model = hub.load("https://tfhub.dev/google/movenet/singlepose/lightning/4")
   pose_estimator = pose_model.signatures['serving_default']
-  generator = tf.keras.models.load_model('datasets/generator')
+  generator = tf.keras.models.load_model('datasets/generator_60')
 
   num_classes = len(labels)
   # model = MotionNet(num_classes, [256])
-  model = MotionNetCNN(num_classes, [16, 32, 64, 128])
-  real_x, real_y = read_motion2021_dataset('datasets/motions2021_xsmall')
+  model = MotionNet60(num_classes, [16, 32, 64, 128])
+  real_x, real_y = read_motion2021_dataset('datasets/motions2021')
   real_dataset = tf.data.Dataset.from_tensor_slices((real_x, real_y)).batch(args.batch_size)
 
   num_batches = int(tf.data.experimental.cardinality(real_dataset).numpy())
