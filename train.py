@@ -81,9 +81,9 @@ if __name__ == '__main__':
   generator = tf.keras.models.load_model('datasets/generator')
 
   num_classes = len(labels)
-  model = MotionNet(num_classes, [256])
-  # model = MotionNetCNN(num_classes, [16, 32, 64, 128])
-  real_x, real_y = read_motion2021_dataset('datasets/motions2021')
+  # model = MotionNet(num_classes, [256])
+  model = MotionNetCNN(num_classes, [16, 32, 64, 128])
+  real_x, real_y = read_motion2021_dataset('datasets/motions2021_xsmall')
   real_dataset = tf.data.Dataset.from_tensor_slices((real_x, real_y)).batch(args.batch_size)
 
   num_batches = int(tf.data.experimental.cardinality(real_dataset).numpy())
@@ -102,6 +102,9 @@ if __name__ == '__main__':
 
       _, test_accuracy = model.test_on_batch(real_x, real_y)
       print(f'Epoch {epoch+1}/{args.epochs}, train_acc: {train_accuracy}, test_acc: {test_accuracy}')
+
+      if epoch > 0 and (epoch + 1) % args.save_interval == 0:
+        model.save(checkpoint_path)
         
   else:
     cp_callback = tf.keras.callbacks.ModelCheckpoint(

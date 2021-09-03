@@ -12,7 +12,7 @@ class MotionNetCNN(tf.keras.Model):
 
     for i, block_channels in enumerate(blocks):
       if i == 0:
-        conv = Conv2D(block_channels, kernel_size=3, strides=2, padding='same', use_bias=False, input_shape=(60, 17, 3,))
+        conv = Conv2D(block_channels, kernel_size=3, strides=2, padding='same', use_bias=False, input_shape=(10, 17, 3,))
       else:
         conv = Conv2D(block_channels, kernel_size=3, strides=2, padding='same', use_bias=False)
 
